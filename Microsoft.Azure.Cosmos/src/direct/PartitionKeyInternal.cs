@@ -642,8 +642,8 @@ namespace Microsoft.Azure.Documents.Routing
                 {
                     this.Components[i].WriteForHashingV2(binaryWriter);
 
-                    UInt128 hash128 = MurmurHash3.Hash128(ms.GetBuffer(), (int)ms.Length, UInt128.MinValue);
-                    hash = UInt128.ToByteArray(hash128);
+                    CustomUInt128 hash128 = MurmurHash3.Hash128(ms.GetBuffer(), (int)ms.Length, CustomUInt128.MinValue);
+                    hash = CustomUInt128.ToByteArray(hash128);
                     Array.Reverse(hash);
 
                     // Reset 2 most significant bits, as max exclusive value is 'FF'.
@@ -668,8 +668,8 @@ namespace Microsoft.Azure.Documents.Routing
                         this.Components[i].WriteForHashingV2(binaryWriter);
                     }
 
-                    UInt128 hash128 = MurmurHash3.Hash128(ms.GetBuffer(), (int)ms.Length, UInt128.MinValue);
-                    hash = UInt128.ToByteArray(hash128);
+                    CustomUInt128 hash128 = MurmurHash3.Hash128(ms.GetBuffer(), (int)ms.Length, CustomUInt128.MinValue);
+                    hash = CustomUInt128.ToByteArray(hash128);
                     Array.Reverse(hash);
 
                     // Reset 2 most significant bits, as max exclusive value is 'FF'.
@@ -790,7 +790,7 @@ namespace Microsoft.Azure.Documents.Routing
 
         private static IReadOnlyList<Int128> GetHashValueFromEPKForMultiHash(string epkValueString, PartitionKeyDefinition partitionKeyDefinition)
         {
-            IList<Int128> hashes = new List<Int128>();
+            IList<CustomInt128> hashes = new List<CustomInt128>();
             int pathCountInEPK = (epkValueString.Length + (HashV2EPKLength - 1))/HashV2EPKLength;
 
             for (int index = 0; index < partitionKeyDefinition.Paths.Count; index++)
@@ -816,11 +816,11 @@ namespace Microsoft.Azure.Documents.Routing
                 }
                 else
                 {
-                    hashes.Add(0);
+                    hashes.Add((CustomInt128)0);
                 }
             }
 
-            return (IReadOnlyList<Int128>)hashes;
+            return (IReadOnlyList<CustomInt128>)hashes;
         }
 
         //Refer docs/design/elasticity/SubpartitioningContainerSplit.md for implementation detail
@@ -833,7 +833,7 @@ namespace Microsoft.Azure.Documents.Routing
 
             IReadOnlyList<Int128> minInclusiveHashValues = GetHashValueFromEPKForMultiHash(minInclusive, partitionKeyDefinition);
             IReadOnlyList<Int128> maxExclusiveHashValues = GetHashValueFromEPKForMultiHash(maxExclusive, partitionKeyDefinition);
-            IList<Int128> midPointHashValues = new List<Int128>(partitionKeyDefinition.Paths.Count);
+            IList<CustomInt128> midPointHashValues = new List<CustomInt128>(partitionKeyDefinition.Paths.Count);
 
             for (int index = 0; index < partitionKeyDefinition.Paths.Count; index++)
             {
