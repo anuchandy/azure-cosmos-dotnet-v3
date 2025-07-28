@@ -37,7 +37,6 @@ namespace Microsoft.Azure.Documents
 
         private static readonly Lazy<bool> enableGlobalStrong = new Lazy<bool>(() => {
             bool isGlobalStrongEnabled = true;
-            // GetEntryAssembly returns null when loaded from native netstandard2.0
             if (System.Reflection.Assembly.GetEntryAssembly() != null)
             {
                 string isGlobalStrongEnabledConfig = System.Configuration.ConfigurationManager.AppSettings[ReplicatedResourceClient.EnableGlobalStrongConfigurationName];

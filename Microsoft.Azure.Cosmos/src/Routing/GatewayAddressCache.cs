@@ -135,9 +135,12 @@ namespace Microsoft.Azure.Cosmos.Routing
                 this.validateUnknownReplicas = true;
             }
 
-            if (int.TryParse(System.Configuration.ConfigurationManager.AppSettings[GatewayAddressCache.AddressResolutionBatchSize], out int userSpecifiedBatchSize))
+            if (System.Reflection.Assembly.GetEntryAssembly() != null)
             {
-                batchSize = userSpecifiedBatchSize;
+                if (int.TryParse(System.Configuration.ConfigurationManager.AppSettings[GatewayAddressCache.AddressResolutionBatchSize], out int userSpecifiedBatchSize))
+                {
+                    batchSize = userSpecifiedBatchSize;
+                }
             }
   
             string collectionAltLink = string.Format(
@@ -647,7 +650,7 @@ namespace Microsoft.Azure.Cosmos.Routing
                     {
                         foreach (TransportAddressUri address in transportAddressUris)
                         {
-                            // The main purpose for this step is to move address health status from Unhealthy to UnHealthyPending.
+                            // The main purpose for this step is to move address health status from Unhealthy to UnhealthyPending.
                             address.SetRefreshedIfUnhealthy();
                         }
                     }

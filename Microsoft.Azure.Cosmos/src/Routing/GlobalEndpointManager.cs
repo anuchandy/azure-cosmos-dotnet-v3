@@ -57,7 +57,6 @@ namespace Microsoft.Azure.Cosmos.Routing
 
             this.connectionPolicy.PreferenceChanged += this.OnPreferenceChanged;
 
-            // GetEntryAssembly returns null when loaded from native netstandard2.0
             if (System.Reflection.Assembly.GetEntryAssembly() != null)
             {
                 string? backgroundRefreshLocationTimeIntervalInMSConfig = System.Configuration.ConfigurationManager.AppSettings[GlobalEndpointManager.BackgroundRefreshLocationTimeIntervalInMS];
