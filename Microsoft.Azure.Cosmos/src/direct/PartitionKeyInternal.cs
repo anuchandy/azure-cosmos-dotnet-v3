@@ -15,6 +15,10 @@ namespace Microsoft.Azure.Documents.Routing
 
     using Newtonsoft.Json;
 
+    // Use aliases to disambiguate between cosmos types and System types in .NET 9
+    using CosmosInt128 = Microsoft.Azure.Documents.SharedFiles.Routing.Int128;
+    using CosmosUInt128 = Microsoft.Azure.Documents.UInt128;
+
     /// <summary>
     /// Schema-less Partition Key value.
     /// </summary>
@@ -33,13 +37,13 @@ namespace Microsoft.Azure.Documents.Routing
             1 /*type marker */ + 9 /* hash value*/ +
             1 /* type marker*/ + StringPartitionKeyComponent.MaxStringBytesToAppend + 1 /*trailing zero*/) * 3;
 
-        private static readonly Int128 MaxHashV2Value = new Int128(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x3F });
+        private static readonly CosmosInt128 MaxHashV2Value = new CosmosInt128(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x3F });
 
         public static readonly string MinimumInclusiveEffectivePartitionKey = ToHexEncodedBinaryString(new IPartitionKeyComponent[0]);
 
         public static readonly string MaximumExclusiveEffectivePartitionKey = ToHexEncodedBinaryString(new[] { new InfinityPartitionKeyComponent() });
 
-        private static readonly Int32 HashV2EPKLength = 32; // UInt128.Length * 2 (UInt128 gives 16 bytes as output, each byte takes 2 chars after hex-encoding)
+        private static readonly Int32 HashV2EPKLength = 32; // CustomUInt128.Length * 2 (CustomUInt128 gives 16 bytes as output, each byte takes 2 chars after hex-encoding)
 
         private static readonly JsonSerializer FromJsonStringSerializer =
             JsonSerializer.CreateDefault(
@@ -258,7 +262,7 @@ namespace Microsoft.Azure.Documents.Routing
                     switch (partitionKeyDefinition.Version ?? defaultPartitionKeyDefinitionVersion)
                     {
                         case PartitionKeyDefinitionVersion.V2:
-                            Int128 val = MaxHashV2Value / partitionCount * partitionIndex;
+                            CosmosInt128 val = MaxHashV2Value / partitionCount * partitionIndex;
                             byte[] bytes = val.Bytes;
                             Array.Reverse(bytes);
                             return HexConvert.ToHex(bytes, 0, bytes.Length);
@@ -272,7 +276,7 @@ namespace Microsoft.Azure.Documents.Routing
                     }
 
                 case PartitionKind.MultiHash:
-                    Int128 max_val = MaxHashV2Value / partitionCount * partitionIndex;
+                    CosmosInt128 max_val = MaxHashV2Value / partitionCount * partitionIndex;
                     byte[] max_bytes = max_val.Bytes;
                     Array.Reverse(max_bytes);
                     return HexConvert.ToHex(max_bytes, 0, max_bytes.Length);
@@ -315,7 +319,7 @@ namespace Microsoft.Azure.Documents.Routing
                     switch (partitionKeyDefinition.Version ?? defaultPartitionKeyDefinitionVersion)
                     {
                         case PartitionKeyDefinitionVersion.V2:
-                            Int128 val = MaxHashV2Value / partitionCount * (partitionIndex + 1);
+                            CosmosInt128 val = MaxHashV2Value / partitionCount * (partitionIndex + 1);
                             byte[] bytes = val.Bytes;
                             Array.Reverse(bytes);
                             return HexConvert.ToHex(bytes, 0, bytes.Length);
@@ -329,7 +333,7 @@ namespace Microsoft.Azure.Documents.Routing
 
                 case PartitionKind.MultiHash:
 
-                    Int128 max_val = MaxHashV2Value / partitionCount * (partitionIndex + 1);
+                    CosmosInt128 max_val = MaxHashV2Value / partitionCount * (partitionIndex + 1);
                     byte[] max_bytes = max_val.Bytes;
                     Array.Reverse(max_bytes);
                     return HexConvert.ToHex(max_bytes, 0, max_bytes.Length);
@@ -392,7 +396,7 @@ namespace Microsoft.Azure.Documents.Routing
         {
             unchecked
             {
-                if (this.Components == null) 
+                if (this.Components == null)
                 {
                     return base.GetHashCode();
                 }
@@ -639,8 +643,8 @@ namespace Microsoft.Azure.Documents.Routing
                 {
                     this.Components[i].WriteForHashingV2(binaryWriter);
 
-                    UInt128 hash128 = MurmurHash3.Hash128(ms.GetBuffer(), (int)ms.Length, UInt128.MinValue);
-                    hash = UInt128.ToByteArray(hash128);
+                    CosmosUInt128 hash128 = MurmurHash3.Hash128(ms.GetBuffer(), (int)ms.Length, CosmosUInt128.MinValue);
+                    hash = CosmosUInt128.ToByteArray(hash128);
                     Array.Reverse(hash);
 
                     // Reset 2 most significant bits, as max exclusive value is 'FF'.
@@ -665,8 +669,8 @@ namespace Microsoft.Azure.Documents.Routing
                         this.Components[i].WriteForHashingV2(binaryWriter);
                     }
 
-                    UInt128 hash128 = MurmurHash3.Hash128(ms.GetBuffer(), (int)ms.Length, UInt128.MinValue);
-                    hash = UInt128.ToByteArray(hash128);
+                    CosmosUInt128 hash128 = MurmurHash3.Hash128(ms.GetBuffer(), (int)ms.Length, CosmosUInt128.MinValue);
+                    hash = CosmosUInt128.ToByteArray(hash128);
                     Array.Reverse(hash);
 
                     // Reset 2 most significant bits, as max exclusive value is 'FF'.
@@ -725,7 +729,7 @@ namespace Microsoft.Azure.Documents.Routing
                 return new string(result);
             }
         }
-        
+
         public static string GetMiddleRangeEffectivePartitionKey(string minInclusive, string maxExclusive, PartitionKeyDefinition partitionKeyDefinition) => partitionKeyDefinition.Kind switch
         {
             PartitionKind.Hash => GetMiddleRangeEffectivePartitionKeyForHash(minInclusive, maxExclusive, partitionKeyDefinition),
@@ -739,20 +743,20 @@ namespace Microsoft.Azure.Documents.Routing
             {
                 case PartitionKeyDefinitionVersion.V2:
                     {
-                        Int128 min = 0;
+                        CosmosInt128 min = 0;
                         if (!minInclusive.Equals(MinimumInclusiveEffectivePartitionKey, StringComparison.Ordinal))
                         {
                             byte[] minBytes = PartitionKeyInternal.HexStringToByteArray(minInclusive);
                             Array.Reverse(minBytes);
-                            min = new Int128(minBytes);
+                            min = new CosmosInt128(minBytes);
                         }
 
-                        Int128 max = MaxHashV2Value;
+                        CosmosInt128 max = MaxHashV2Value;
                         if (!maxExclusive.Equals(MaximumExclusiveEffectivePartitionKey, StringComparison.Ordinal))
                         {
                             byte[] maxBytes = PartitionKeyInternal.HexStringToByteArray(maxExclusive);
                             Array.Reverse(maxBytes);
-                            max = new Int128(maxBytes);
+                            max = new CosmosInt128(maxBytes);
                         }
 
                         byte[] midBytes = (min + (max - min) / 2).Bytes;
@@ -785,10 +789,10 @@ namespace Microsoft.Azure.Documents.Routing
             }
         }
 
-        private static IReadOnlyList<Int128> GetHashValueFromEPKForMultiHash(string epkValueString, PartitionKeyDefinition partitionKeyDefinition)
+        private static IReadOnlyList<CosmosInt128> GetHashValueFromEPKForMultiHash(string epkValueString, PartitionKeyDefinition partitionKeyDefinition)
         {
-            IList<Int128> hashes = new List<Int128>();
-            int pathCountInEPK = (epkValueString.Length + (HashV2EPKLength - 1))/HashV2EPKLength;
+            IList<CosmosInt128> hashes = new List<CosmosInt128>();
+            int pathCountInEPK = (epkValueString.Length + (HashV2EPKLength - 1)) / HashV2EPKLength;
 
             for (int index = 0; index < partitionKeyDefinition.Paths.Count; index++)
             {
@@ -808,7 +812,7 @@ namespace Microsoft.Azure.Documents.Routing
                         string epkSubPart = epkValueString.Substring(startIndexForEPK, HashV2EPKLength);
                         byte[] maxBytes = PartitionKeyInternal.HexStringToByteArray(epkSubPart);
                         Array.Reverse(maxBytes);
-                        hashes.Add(new Int128(maxBytes));
+                        hashes.Add(new CosmosInt128(maxBytes));
                     }
                 }
                 else
@@ -817,7 +821,7 @@ namespace Microsoft.Azure.Documents.Routing
                 }
             }
 
-            return (IReadOnlyList<Int128>)hashes;
+            return (IReadOnlyList<CosmosInt128>)hashes;
         }
 
         //Refer docs/design/elasticity/SubpartitioningContainerSplit.md for implementation detail
@@ -828,14 +832,14 @@ namespace Microsoft.Azure.Documents.Routing
                 throw new InternalServerErrorException("Unexpected PartitionKeyDefinitionVersion " + partitionKeyDefinition.Version + " for MultiHash Partition kind");
             }
 
-            IReadOnlyList<Int128> minInclusiveHashValues = GetHashValueFromEPKForMultiHash(minInclusive, partitionKeyDefinition);
-            IReadOnlyList<Int128> maxExclusiveHashValues = GetHashValueFromEPKForMultiHash(maxExclusive, partitionKeyDefinition);
-            IList<Int128> midPointHashValues = new List<Int128>(partitionKeyDefinition.Paths.Count);
+            IReadOnlyList<CosmosInt128> minInclusiveHashValues = GetHashValueFromEPKForMultiHash(minInclusive, partitionKeyDefinition);
+            IReadOnlyList<CosmosInt128> maxExclusiveHashValues = GetHashValueFromEPKForMultiHash(maxExclusive, partitionKeyDefinition);
+            IList<CosmosInt128> midPointHashValues = new List<CosmosInt128>(partitionKeyDefinition.Paths.Count);
 
             for (int index = 0; index < partitionKeyDefinition.Paths.Count; index++)
             {
-                Int128 min = minInclusiveHashValues[index];
-                Int128 max = maxExclusiveHashValues[index];
+                CosmosInt128 min = minInclusiveHashValues[index];
+                CosmosInt128 max = maxExclusiveHashValues[index];
 
                 if (min == max || min + 1 == max)
                 {
@@ -853,14 +857,14 @@ namespace Microsoft.Azure.Documents.Routing
                         max = MaxHashV2Value;
                     }
 
-                    Int128 midValue = (min + (max - min) / 2);
+                    CosmosInt128 midValue = (min + (max - min) / 2);
                     midPointHashValues.Add(midValue);
                     break;
                 }
             }
 
-            StringBuilder midPointEPKBuilder = new StringBuilder() ;
-            foreach (Int128 value in midPointHashValues)
+            StringBuilder midPointEPKBuilder = new StringBuilder();
+            foreach (CosmosInt128 value in midPointHashValues)
             {
                 byte[] midBytes = value.Bytes;
                 Array.Reverse(midBytes);
@@ -890,20 +894,20 @@ namespace Microsoft.Azure.Documents.Routing
             {
                 case PartitionKeyDefinitionVersion.V2:
                     {
-                        Int128 min = 0;
+                        CosmosInt128 min = 0;
                         if (!minInclusive.Equals(MinimumInclusiveEffectivePartitionKey, StringComparison.Ordinal))
                         {
                             byte[] minBytes = PartitionKeyInternal.HexStringToByteArray(minInclusive);
                             Array.Reverse(minBytes);
-                            min = new Int128(minBytes);
+                            min = new CosmosInt128(minBytes);
                         }
 
-                        Int128 max = MaxHashV2Value;
+                        CosmosInt128 max = MaxHashV2Value;
                         if (!maxExclusive.Equals(MaximumExclusiveEffectivePartitionKey, StringComparison.Ordinal))
                         {
                             byte[] maxBytes = PartitionKeyInternal.HexStringToByteArray(maxExclusive);
                             Array.Reverse(maxBytes);
-                            max = new Int128(maxBytes);
+                            max = new CosmosInt128(maxBytes);
                         }
 
                         if (max - min < numberOfSubRanges)
@@ -966,21 +970,21 @@ namespace Microsoft.Azure.Documents.Routing
             {
                 case PartitionKeyDefinitionVersion.V2:
                     {
-                        UInt128 min = 0;
+                        CosmosUInt128 min = 0;
                         if (!minInclusive.Equals(MinimumInclusiveEffectivePartitionKey, StringComparison.Ordinal))
                         {
                             byte[] minBytes = PartitionKeyInternal.HexStringToByteArray(minInclusive);
                             Array.Reverse(minBytes);
-                            min = UInt128.FromByteArray(minBytes);
+                            min = CosmosUInt128.FromByteArray(minBytes);
                         }
 
-                        UInt128 maxHashV2Value = UInt128.FromByteArray(MaxHashV2Value.Bytes);
-                        UInt128 max = maxHashV2Value;
+                        CosmosUInt128 maxHashV2Value = CosmosUInt128.FromByteArray(MaxHashV2Value.Bytes);
+                        CosmosUInt128 max = maxHashV2Value;
                         if (!maxExclusive.Equals(MaximumExclusiveEffectivePartitionKey, StringComparison.Ordinal))
                         {
                             byte[] maxBytes = PartitionKeyInternal.HexStringToByteArray(maxExclusive);
                             Array.Reverse(maxBytes);
-                            max = UInt128.FromByteArray(maxBytes);
+                            max = CosmosUInt128.FromByteArray(maxBytes);
                         }
 
                         double width = (1.0 * (max.GetHigh() - min.GetHigh())) / (maxHashV2Value.GetHigh() + 1);
@@ -1024,21 +1028,21 @@ namespace Microsoft.Azure.Documents.Routing
             minInclusive = minInclusive.Substring(0, Math.Min(minInclusive.Length, HashV2EPKLength));
             maxExclusive = maxExclusive.Substring(0, Math.Min(maxExclusive.Length, HashV2EPKLength));
 
-            UInt128 min = 0;
+            CosmosUInt128 min = 0;
             if (!minInclusive.Equals(MinimumInclusiveEffectivePartitionKey, StringComparison.Ordinal))
             {
                 byte[] minBytes = PartitionKeyInternal.HexStringToByteArray(minInclusive);
                 Array.Reverse(minBytes);
-                min = UInt128.FromByteArray(minBytes);
+                min = CosmosUInt128.FromByteArray(minBytes);
             }
 
-            UInt128 maxHashV2Value = UInt128.FromByteArray(MaxHashV2Value.Bytes);
-            UInt128 max = maxHashV2Value;
+            CosmosUInt128 maxHashV2Value = CosmosUInt128.FromByteArray(MaxHashV2Value.Bytes);
+            CosmosUInt128 max = maxHashV2Value;
             if (!maxExclusive.Equals(MaximumExclusiveEffectivePartitionKey, StringComparison.Ordinal))
             {
                 byte[] maxBytes = PartitionKeyInternal.HexStringToByteArray(maxExclusive);
                 Array.Reverse(maxBytes);
-                max = UInt128.FromByteArray(maxBytes);
+                max = CosmosUInt128.FromByteArray(maxBytes);
             }
 
             double width = (1.0 * (max.GetHigh() - min.GetHigh())) / (maxHashV2Value.GetHigh() + 1);
@@ -1055,12 +1059,12 @@ namespace Microsoft.Azure.Documents.Routing
 
         public Range<string> GetEPKRangeForPrefixPartitionKey(PartitionKeyDefinition partitionKeyDefinition)
         {
-            if(partitionKeyDefinition.Kind != PartitionKind.MultiHash)
+            if (partitionKeyDefinition.Kind != PartitionKind.MultiHash)
             {
                 throw new ArgumentException(RMResources.UnsupportedPartitionDefinitionKindForPartialKeyOperations);
             }
 
-            if(this.components.Count >= partitionKeyDefinition.Paths.Count)
+            if (this.components.Count >= partitionKeyDefinition.Paths.Count)
             {
                 throw new ArgumentException(RMResources.TooManyPartitionKeyComponents);
             }

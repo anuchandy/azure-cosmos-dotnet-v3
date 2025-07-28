@@ -54,12 +54,9 @@ namespace Microsoft.Azure.Cosmos.Routing
             this.unavailableLocationsExpirationTime = TimeSpan.FromSeconds(LocationCache.DefaultUnavailableLocationsExpirationTimeInSeconds);
             this.regionNameMapper = new RegionNameMapper();
 
-#if !(NETSTANDARD15 || NETSTANDARD16)
-#if NETSTANDARD20
             // GetEntryAssembly returns null when loaded from native netstandard2.0
             if (System.Reflection.Assembly.GetEntryAssembly() != null)
             {
-#endif
                 string unavailableLocationsExpirationTimeInSecondsConfig = System.Configuration.ConfigurationManager.AppSettings[LocationCache.UnavailableLocationsExpirationTimeInSeconds];
                 if (!string.IsNullOrEmpty(unavailableLocationsExpirationTimeInSecondsConfig))
                 {
@@ -74,10 +71,7 @@ namespace Microsoft.Azure.Cosmos.Routing
                         this.unavailableLocationsExpirationTime = TimeSpan.FromSeconds(unavailableLocationsExpirationTimeinSecondsConfigValue);
                     }
                 }
-#if NETSTANDARD20
-            }
-#endif  
-#endif
+            }  
         }
 
         /// <summary>
@@ -868,10 +862,8 @@ namespace Microsoft.Azure.Cosmos.Routing
 
         private void SetServicePointConnectionLimit(Uri endpoint)
         {
-#if !NETSTANDARD16
             ServicePointAccessor servicePoint = ServicePointAccessor.FindServicePoint(endpoint);
             servicePoint.ConnectionLimit = this.connectionLimit;
-#endif
         }
 
         private sealed class LocationUnavailabilityInfo
