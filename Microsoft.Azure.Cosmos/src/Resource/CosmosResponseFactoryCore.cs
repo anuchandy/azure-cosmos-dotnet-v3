@@ -5,6 +5,7 @@
 namespace Microsoft.Azure.Cosmos
 {
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization.Metadata;
     using Microsoft.Azure.Cosmos.Scripts;
 
